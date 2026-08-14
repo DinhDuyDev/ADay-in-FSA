@@ -1,3 +1,4 @@
+import pygame
 from settings import WINDOW_WIDTH
 ## Correct labels
 class Text:
@@ -94,5 +95,10 @@ selection4 = [
     Text(WINDOW_WIDTH/2, 290, "Hỏi ID/khách: hiệu ứng này\ncó đáng để trễ giờ không?"),
 ]
 selection4_answer = "Chốt bản đang chạy tốt, lên sóng\nđúng hẹn, ghi hiệu ứng vào “bản sau”. Hỏi ID/khách: hiệu ứng này\ncó đáng để trễ giờ không?"
+
+character_choice = [
+    "Instructional Designer",
+    "E-Learning Developer"
+]
 
 buffer = []

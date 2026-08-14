@@ -19,7 +19,7 @@ class Player:
         self.move_path:list[tuple[int, int]] = list()
         self.surface = pygame.Surface((8, 8))
         self.surface.fill((255, 0, 0))
-        self.move_speed = 2
+        self.move_speed = 2.5
 
     def calc_movement(self, gX, gY, tiles):
         self.dest_x = gX
