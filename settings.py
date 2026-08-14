@@ -13,7 +13,7 @@ FLOOR_COVERAGE = 1.77 # 1
 
 # view
 ZOOM = 1.5
-UP_OFFSET = 0
+UP_OFFSET = 48
 EDIT_MODE = False
 
 # DEBUG & BUILD
