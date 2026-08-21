@@ -134,10 +134,24 @@ export class DialogueBox {
     if (this.finished) return;
     if (e.type === "mousedown" && e.button === 0 && inRect(this.rect, e.pos)) this._advance();
   }
+  // map the current speaker to a synth voice (see VOICES in audio.js)
+  _voice() {
+    const name = ((this.speakerNames && this.speakerNames[this._curSpeaker]) || "").toLowerCase();
+    if (this._curSpeaker === "left" || name === "you") return "player";
+    if (name.includes("boss")) return "boss";
+    if (name.includes("lan")) return "lan";
+    if (name.includes("hung")) return "hung";
+    return "npc";
+  }
   update() {
     if (this.finished || !this.lines) return;
-    if (this.char_index < this._display.length) this.char_index = Math.min(this.char_index + this.char_speed, this._display.length);
-    else { this._pause++; if (this._pause >= this.PAUSE) this._advance(); }
+    if (this.char_index < this._display.length) {
+      const before = Math.floor(this.char_index);
+      this.char_index = Math.min(this.char_index + this.char_speed, this._display.length);
+      const after = Math.floor(this.char_index);
+      // play a soft speech blip for each newly revealed character
+      for (let i = before; i < after; i++) audio.speak(this._display[i], { voice: this._voice() });
+    } else { this._pause++; if (this._pause >= this.PAUSE) this._advance(); }
   }
   draw(ctx) {
     if (this.finished || !this.lines) return;
@@ -220,9 +234,42 @@ export class ConversationScene {
   get visible() { return this._alpha > 0; }
   set_speaking(s) { this._speaking = s; }
   _bobOffset(side) {
-    if (this._speaking !== side) return 0;
-    const phase = (this._bob / 10) * 2 * Math.PI;
-    return Math.round(-Math.abs(Math.sin(phase)) * 4);
+    if (this._speaking === side) {
+      // livelier bounce while this character is talking
+      const phase = (this._bob / 7) * 2 * Math.PI;
+      return Math.round(-Math.abs(Math.sin(phase)) * 5);
+    }
+    // gentle idle "breathing" so the listener isn't frozen (phase offset per side)
+    return Math.round(Math.sin((this._bob + (side === "left" ? 0 : 24)) / 42) * 1.2);
+  }
+  // little animated "chatter" bubble above a talking head: a rounded speech
+  // bubble with a downward tail and three dots that bob in a wave.
+  _drawChatterBubble(ctx, cx, headTopY) {
+    const phase = this._bob;
+    const pulse = 1 + Math.sin(phase / 6) * 0.06;            // gentle breathing pop
+    const bw = 42, bh = 26;
+    const bx = Math.round(cx - bw / 2);
+    const by = Math.round(headTopY - bh - 10 + Math.sin(phase / 9) * 1.5); // slight float
+    ctx.save();
+    ctx.translate(cx, by + bh); ctx.scale(pulse, pulse); ctx.translate(-cx, -(by + bh));
+    ctx.save(); ctx.globalAlpha = 0.16; fillRoundRect(ctx, bx, by + 3, bw, bh, 11, "rgb(0,0,0)"); ctx.restore();
+    // tail first, so the rounded body edge covers its top
+    ctx.fillStyle = "rgb(255,255,255)";
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, by + bh - 2); ctx.lineTo(cx + 6, by + bh - 2); ctx.lineTo(cx, by + bh + 9); ctx.closePath(); ctx.fill();
+    fillRoundRect(ctx, bx, by, bw, bh, 11, "rgb(255,255,255)");
+    strokeRoundRect(ctx, bx, by, bw, bh, 11, "rgb(60,45,30)", 2);
+    ctx.strokeStyle = "rgb(60,45,30)"; ctx.lineWidth = 2; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(cx - 6, by + bh - 1); ctx.lineTo(cx, by + bh + 9); ctx.lineTo(cx + 6, by + bh - 1); ctx.stroke();
+    // three chattering dots
+    const cyd = by + bh / 2, gap = 11, dotR = 3;
+    for (let i = 0; i < 3; i++) {
+      const dx = cx - gap + i * gap;
+      const up = Math.max(0, Math.sin(phase / 5 - i * 0.7)) * 4;
+      ctx.fillStyle = T.PRIMARY;
+      ctx.beginPath(); ctx.arc(dx, cyd - up, dotR, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
   }
   _drawOutlined(ctx, sprite, outline, cx, by) {
     const x = Math.round(cx - sprite.width / 2), y = Math.round(by - sprite.height);
@@ -250,10 +297,14 @@ export class ConversationScene {
       if (this.left && this._lx != null) {
         const oy = this._alpha >= 255 ? this._bobOffset("left") : 0;
         this._drawOutlined(ctx, this.left, this._outlineL, this._lx, groundY + oy);
+        if (this._alpha >= 255 && this._speaking === "left")
+          this._drawChatterBubble(ctx, this._lx, groundY + oy - this.left.height);
       }
       if (this._rightFlipped && this._rx != null) {
         const oy = this._alpha >= 255 ? this._bobOffset("right") : 0;
         this._drawOutlined(ctx, this._rightFlipped, this._outlineR, this._rx, groundY + oy);
+        if (this._alpha >= 255 && this._speaking === "right")
+          this._drawChatterBubble(ctx, this._rx, groundY + oy - this._rightFlipped.height);
       }
     }
     ctx.restore();

@@ -17,8 +17,25 @@ const SFX_PATHS = {
 // does -- tap, touch, key, or click, anywhere on the page -- unmutes the music.
 const ACTIVATION_EVENTS = ["pointerdown", "touchend", "keydown", "click"];
 
+// ---- synthesised speech blips (Deltarune / Tomodachi-Life style) ----
+// Pitches are quantised to a major-pentatonic scale so the babble comes out
+// musical and soft rather than random and harsh -- the key to it sounding nice.
+const PENTA = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3];
+// Per-character "voices": a comfortable base pitch (Hz) + how far each blip
+// glides down (adds a warm, vocal "bo" shape). Kept in a mellow mid range.
+const VOICES = {
+  player: { base: 300, glide: 0.94 }, // the player -- neutral, mid
+  boss:   { base: 168, glide: 0.92 }, // low + steady, a touch of authority
+  lan:    { base: 356, glide: 0.95 }, // bright and light
+  hung:   { base: 232, glide: 0.93 }, // warmer, lower
+  npc:    { base: 272, glide: 0.94 }, // default for anyone else
+};
+
 class AudioManager {
-  constructor() { this._sfx = {}; this._bgm = null; this._bgmStarted = false; this._unlocked = false; this._inited = false; }
+  constructor() {
+    this._sfx = {}; this._bgm = null; this._bgmStarted = false; this._unlocked = false; this._inited = false;
+    this._actx = null; this._blipBus = null; this._lastBlip = 0; // speech-blip synth
+  }
 
   // Safe to call as early as possible (idempotent). Kicks off buffering of the
   // soundtrack + SFX right away so playback can begin the instant the user taps.
@@ -55,9 +72,61 @@ class AudioManager {
         this._bgm.muted = false;
         if (this._bgm.paused) this._bgm.play().then(() => { this._bgmStarted = true; }).catch(() => {});
       }
+      this._ensure_synth(); // warm up the speech-blip context on the same gesture
+      if (this._actx && this._actx.state === "suspended") this._actx.resume();
       for (const ev of ACTIVATION_EVENTS) window.removeEventListener(ev, unlock);
     };
     for (const ev of ACTIVATION_EVENTS) window.addEventListener(ev, unlock, { passive: true });
+  }
+
+  // Lazily build the Web-Audio graph for speech blips: a shared gain bus into a
+  // gentle lowpass (warmth) into the speakers. Created on demand / on first tap.
+  _ensure_synth() {
+    if (this._actx) return;
+    const AC = (typeof window !== "undefined") && (window.AudioContext || window.webkitAudioContext);
+    if (!AC) return;
+    try {
+      const ctx = new AC();
+      const bus = ctx.createGain();
+      bus.gain.value = 0.16; // gentle overall level -- blips stay soft under the music
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass"; lp.frequency.value = 2600; lp.Q.value = 0.6; // shave harsh highs
+      bus.connect(lp); lp.connect(ctx.destination);
+      this._actx = ctx; this._blipBus = bus;
+    } catch (e) { this._actx = null; }
+  }
+
+  // Play one short, soft speech blip for a spoken character. Letters/digits only
+  // (spaces & punctuation fall through as natural little pauses).
+  speak(ch, opts = {}) {
+    if (!ch || !/[a-z0-9]/i.test(ch)) return;
+    this._ensure_synth();
+    const ctx = this._actx;
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const now = ctx.currentTime;
+    if (now - this._lastBlip < 0.05) return; // throttle -> soft, even cadence
+    this._lastBlip = now;
+
+    const v = VOICES[opts.voice] || VOICES.npc;
+    const code = ch.toLowerCase().charCodeAt(0);
+    const step = PENTA[code % PENTA.length];       // melodic pitch from the letter
+    const lift = (code % 7 === 0) ? 2 : 1;          // occasional octave hop for life
+    const freq = v.base * step * lift;
+    const dur = 0.09;
+
+    const osc = ctx.createOscillator();
+    osc.type = "triangle"; // warm, rounded tone (not a harsh square/saw)
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(50, freq * v.glide), now + dur);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.9, now + 0.006); // soft fast attack
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur); // smooth decay
+
+    osc.connect(g); g.connect(this._blipBus);
+    osc.start(now); osc.stop(now + dur + 0.03);
   }
 
   _start_bgm_autoplay() {

@@ -16,7 +16,7 @@ export const UP_OFFSET = 48;
 
 // story / script
 export const DIALOGUE_TEXT_SPEED = 0.5;      // chars revealed per frame
-export const DIALOGUE_PAUSE_FRAMES = 140;   // hold a finished line before auto-advance
+export const DIALOGUE_PAUSE_FRAMES = 120;   // hold a finished line before auto-advance
 
 export const STORY_ID_DESK_TILE = [2, 3];
 export const STORY_TEAMMATE1_DESK_TILE = [10, 7];
@@ -24,7 +24,7 @@ export const STORY_TEAMMATE2_DESK_TILE = [3, 11];
 
 // fonts (loaded via FontFace in main.js)
 // Toggle: true = pixel font (GameFont), false = plain fallback font everywhere.
-export const USE_PIXEL_FONT = false; 
+export const USE_PIXEL_FONT = false;
 export const FONT_FAMILY = "GameFont";              // custom pixel font
 export const FONT_FALLBACK = "Helvetica, Arial, sans-serif";//"Tahoma, Segoe UI, Arial, sans-serif";
 export const BASE_FONT_SIZE = 16;

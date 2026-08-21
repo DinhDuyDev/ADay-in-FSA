@@ -571,6 +571,7 @@ async function main() {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  window.__story = story; window.__step = (n = 1) => { for (let i = 0; i < n; i++) update(); render(); }; // TEMP debug
 }
 
 main().catch((e) => { console.error("MAIN FAILED:", (e && e.stack) || e); });
