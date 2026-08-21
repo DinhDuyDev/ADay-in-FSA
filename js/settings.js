@@ -16,7 +16,7 @@ export const UP_OFFSET = 48;
 
 // story / script
 export const DIALOGUE_TEXT_SPEED = 0.5;      // chars revealed per frame
-export const DIALOGUE_PAUSE_FRAMES = 120;   // hold a finished line before auto-advance
+export const DIALOGUE_PAUSE_FRAMES = 140;   // hold a finished line before auto-advance
 
 export const STORY_ID_DESK_TILE = [2, 3];
 export const STORY_TEAMMATE1_DESK_TILE = [10, 7];
