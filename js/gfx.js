@@ -122,9 +122,10 @@ export function strokeRoundRect(ctx, x, y, w, h, r, style, lw = 2, corners = nul
 }
 
 // ---- text ----
-import { FONT_FAMILY, FONT_FALLBACK } from "./settings.js";
+import { FONT_FAMILY, FONT_FALLBACK, USE_PIXEL_FONT } from "./settings.js";
 export function setFont(ctx, size, bold = false) {
-  ctx.font = `${bold ? "bold " : ""}${Math.max(1, Math.round(size))}px ${FONT_FAMILY}, ${FONT_FALLBACK}`;
+  const family = USE_PIXEL_FONT ? `${FONT_FAMILY}, ${FONT_FALLBACK}` : FONT_FALLBACK;
+  ctx.font = `${bold ? "bold " : ""}${Math.max(1, Math.round(size))}px ${family}`;
 }
 export function wrapText(ctx, text, size, maxWidth, bold = false) {
   setFont(ctx, size, bold);

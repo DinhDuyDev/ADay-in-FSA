@@ -73,8 +73,14 @@ canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
 // ---------------- main ----------------
 async function main() {
-  // ensure pixel font is ready before first text render
-  try { await document.fonts.load(`16px ${S.FONT_FAMILY}`); } catch (e) {}
+  // Start audio first: begins buffering bgm.ogg and registers the tap-to-unlock
+  // listener before any sprites load, so the soundtrack is ready to play the
+  // moment the user first taps (even while still on the loading screen).
+  audio.init();
+
+  // ensure pixel font is ready before first text render (skipped when the
+  // USE_PIXEL_FONT toggle is off -- the fallback font needs no preloading)
+  if (S.USE_PIXEL_FONT) { try { await document.fonts.load(`16px ${S.FONT_FAMILY}`); } catch (e) {} }
 
   let zoom = ZOOM, base_zoom = ZOOM, render_zoom = zoom;
   const CONVO_ZOOM = 1.0;
@@ -172,14 +178,15 @@ async function main() {
   const geometry = Array.from({ length: geoH }, () => new Array(geoW).fill(0));
   for (const t of allTiles) geometry[t[1]][t[0]] = 1;
 
-  // ---- entities ----
-  const boss_sprite = scaleBy(boss_png, 1.25, 1.25, false);
+  // ---- entities (functional NPCs) ----
+  // Surfaces are assigned raw here; they're re-sized just below (once the npc
+  // pose sprites load) to match the ambient coworkers' on-screen size.
   const chairPos = (tile) => [tile[0] * TILESIZE + 16, (tile[1] - 1) * TILESIZE + 16];
-  const boss = new NPC(6 * TILESIZE + 16, 2 * TILESIZE + 16, boss_sprite);
+  const boss = new NPC(6 * TILESIZE + 16, 2 * TILESIZE + 16, boss_png);
   const t1c = chairPos(S.STORY_TEAMMATE1_DESK_TILE);
   const t2c = chairPos(S.STORY_TEAMMATE2_DESK_TILE);
-  const teammate1 = new NPC(t1c[0], t1c[1], scaleBy(tm1_png, 1.25, 1.25, false));
-  const teammate2 = new NPC(t2c[0], t2c[1], scaleBy(tm2_png, 1.25, 1.25, false));
+  const teammate1 = new NPC(t1c[0], t1c[1], tm1_png);
+  const teammate2 = new NPC(t2c[0], t2c[1], tm2_png);
 
   const story_positions = {
     boss: [boss.x, boss.y],
@@ -220,6 +227,26 @@ async function main() {
     for (const k of Object.keys(f)) if (k !== "sleep" && k !== "talk") return f[k];
     return Object.values(f)[0];
   };
+
+  // Normalise the functional NPCs (Boss / Lan / Hung) to the same on-screen size
+  // as the ambient coworkers, so the whole room reads at one consistent scale.
+  // Match a shared *content* height (opaque pixels) averaged across the ambient
+  // standing poses -- robust even if the source sprites fill their frames
+  // differently -- rather than a fixed frame scale.
+  {
+    const contentH = (img) => boundingRect(img).h;
+    const pool = [];
+    for (const who of npc_identities) {
+      const f = npc_frames[who];
+      for (const k of ["idle", "work", "working"]) if (f[k] && f[k].width > 1) pool.push(f[k]);
+    }
+    const targetH = pool.length
+      ? Math.round(pool.reduce((s, im) => s + contentH(im), 0) / pool.length) : 46;
+    const sizeToNpc = (png) => { const fct = targetH / Math.max(1, contentH(png)); return scaleBy(png, fct, fct, false); };
+    boss.surface = sizeToNpc(boss_png);
+    teammate1.surface = sizeToNpc(tm1_png);
+    teammate2.surface = sizeToNpc(tm2_png);
+  }
 
   // ---- player animation frames ----
   async function loadPlayerFrames(prefix, sf = 1.4) {
@@ -455,7 +482,6 @@ async function main() {
   for (let d = 0; d < 360; d += ROTATION_SNAP_DEG) if (d !== snapDir(direction)) warmPending.push(d);
   warmPending.sort((a, b) => Math.min((a - direction + 360) % 360, (direction - a + 360) % 360) - Math.min((b - direction + 360) % 360, (direction - b + 360) % 360));
 
-  audio.init();
   // hide the HTML loading screen -- assets are ready
   const loaderEl = document.getElementById("loader");
   if (loaderEl) { loaderEl.classList.add("hidden"); setTimeout(() => loaderEl.remove(), 500); }

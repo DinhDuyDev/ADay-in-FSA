@@ -4,6 +4,17 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>A Day in FSA.STIL</title>
+<script>
+  // Warm the soundtrack during HTML parse, before the deferred JS module even
+  // downloads, so bgm.ogg is buffered by the time the player first taps.
+  // (rel=preload as=audio is unsupported in Chromium/mobile, so prime an Audio
+  // element directly; audio.js reuses this exact element to avoid a re-fetch.)
+  try {
+    window.__bgmPreload = new Audio("audio/bgm.ogg");
+    window.__bgmPreload.preload = "auto";
+    window.__bgmPreload.load();
+  } catch (e) {}
+</script>
 <style>
   @font-face {
     font-family: "GameFont";
