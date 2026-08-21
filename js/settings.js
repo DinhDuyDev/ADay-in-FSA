@@ -24,7 +24,7 @@ export const STORY_TEAMMATE2_DESK_TILE = [3, 11];
 
 // fonts (loaded via FontFace in main.js)
 // Toggle: true = pixel font (GameFont), false = plain fallback font everywhere.
-export const USE_PIXEL_FONT = true;
+export const USE_PIXEL_FONT = false;
 export const FONT_FAMILY = "GameFont";              // custom pixel font
 export const FONT_FALLBACK = "Helvetica, Arial, sans-serif";//"Tahoma, Segoe UI, Arial, sans-serif";
 export const BASE_FONT_SIZE = 16;
