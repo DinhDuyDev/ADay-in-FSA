@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>A Day in FSA.STIL</title>
+<style>
+  @font-face {
+    font-family: "GameFont";
+    src: url("fonts/main.ttf") format("truetype");
+    font-display: swap;
+  }
+  :root { --bg: #201b17; --warm: #eee9e3; --accent: #ff7a29; --accent-lt: #f0d8c4; --text: #2d231e; --muted: #8a7a6f; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  /* canvas is drawn at internal resolution, CSS-scaled to fit (contain) */
+  #game { image-rendering: pixelated; image-rendering: crisp-edges;
+    height: 100%; width: auto; max-width: 100%; touch-action: none;
+    background: var(--warm); }
+  @media (min-aspect-ratio: 9/16) { #game { height: 100%; width: auto; } }
+  @media (max-aspect-ratio: 9/16) { #game { width: 100%; height: auto; } }
+
+  #loader { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px; background: var(--warm); color: var(--text);
+    font-family: "GameFont", "Segoe UI", system-ui, Arial, sans-serif; transition: opacity .45s ease; }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  #loader .t { font-size: 22px; font-weight: 800; letter-spacing: .5px; }
+  #loader .spin { width: 46px; height: 46px; border-radius: 50%;
+    border: 5px solid var(--accent-lt); border-top-color: var(--accent); animation: rot 1s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  #loader .bar { width: 210px; height: 8px; border-radius: 4px; background: var(--accent-lt); overflow: hidden; }
+  #loader .bar > i { display: block; height: 100%; width: 32%; background: var(--accent); border-radius: 4px; animation: slide 1.3s ease-in-out infinite; }
+  @keyframes slide { 0% { margin-left: -32%; } 100% { margin-left: 100%; } }
+  #loader .s { font-size: 13px; color: var(--muted); max-width: 78%; text-align: center; line-height: 1.55; }
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="432" height="768"></canvas>
+  </div>
+  <div id="loader">
+    <div class="t">A Day in FSA.STIL</div>
+    <div class="spin"></div>
+    <div class="bar"><i></i></div>
+    <div class="s">Loading&hellip;</div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
